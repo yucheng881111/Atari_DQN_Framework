@@ -1,0 +1,4 @@
+pyyaml
+numpy==1.18.1
+gym[atari]==0.17.2
+tensorboard==2.0.1
