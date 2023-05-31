@@ -18,8 +18,21 @@ python -m atari_py.import_roms ROMS
 conda install -c anaconda protobuf
 ```
 
-## Run
+## Run Train
 
 ```
 (env CUDA_VISIBLE_DEVICES=0) python train_qrdqn.py --cuda --env_id BreakoutNoFrameskip-v4 --config config/qrdqn.yaml
 ```
+## Run Evaluate and Render
+Install this for render:
+```
+conda install -c conda-forge libstdcxx-ng
+```
+run:
+```
+python eval.py --cuda --env_id BreakoutNoFrameskip-v4 --config config/qrdqn_dueling.yaml --agent qrdqn
+```
+then input the number of model path.
+
+Note that your agent, config, and model must match.
+
