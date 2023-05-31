@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import os
+import time
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -96,10 +97,12 @@ class BaseAgent(ABC):
 
     def is_random(self, eval=False):
         # Use e-greedy for evaluation.
-        if self.steps < self.start_steps:
-            return True
         if eval:
             return np.random.rand() < self.epsilon_eval
+
+        if self.steps < self.start_steps:
+            return True
+        
         if self.noisy_net:
             return False
         return np.random.rand() < self.epsilon_train.get()
@@ -136,10 +139,16 @@ class BaseAgent(ABC):
             os.path.join(save_dir, 'target_net.pth'))
 
     def load_models(self, save_dir):
-        self.online_net.load_state_dict(torch.load(
-            os.path.join(save_dir, 'online_net.pth')))
-        self.target_net.load_state_dict(torch.load(
-            os.path.join(save_dir, 'target_net.pth')))
+        if not torch.cuda.is_available():
+            self.online_net.load_state_dict(torch.load(
+                os.path.join(save_dir, 'online_net.pth'), map_location=torch.device('cpu')))
+            self.target_net.load_state_dict(torch.load(
+                os.path.join(save_dir, 'target_net.pth'), map_location=torch.device('cpu')))
+        else:
+            self.online_net.load_state_dict(torch.load(
+                os.path.join(save_dir, 'online_net.pth')))
+            self.target_net.load_state_dict(torch.load(
+                os.path.join(save_dir, 'target_net.pth')))
 
     def train_episode(self):
         self.online_net.train()
@@ -243,6 +252,40 @@ class BaseAgent(ABC):
         print(f'Num steps: {self.steps:<5}  '
               f'return: {mean_return:<5.1f}')
         print('-' * 60)
+
+    def eval_and_render(self):
+        self.online_net.eval()
+        num_episodes = 10
+        num_steps = 0
+        total_return = 0.0
+
+        for i in range(num_episodes):
+            state = self.test_env.reset()
+            episode_steps = 0
+            episode_return = 0.0
+            done = False
+            while (not done) and episode_steps <= self.max_episode_steps:
+                time.sleep(0.01)
+                self.test_env.render()
+
+                if self.is_random(eval=True):
+                    action = self.explore()
+                else:
+                    action = self.exploit(state)
+
+                next_state, reward, done, _ = self.test_env.step(action)
+                num_steps += 1
+                episode_steps += 1
+                episode_return += reward
+                state = next_state
+            
+            total_return += episode_return
+            print('episode {}: {:.2f}'.format(i+1, episode_return))
+
+        mean_return = total_return / num_episodes
+        print('Average Reward: {:.2f}'.format(mean_return))
+
+        
 
     def __del__(self):
         self.env.close()
