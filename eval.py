@@ -1,4 +1,5 @@
 import os
+import shutil
 import yaml
 import argparse
 from datetime import datetime
@@ -67,6 +68,8 @@ def run(args):
 
     else:
         print('Agent does not exist.')
+
+    shutil.rmtree(log_dir)
 
 
 
